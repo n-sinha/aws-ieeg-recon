@@ -6,6 +6,7 @@
 _build/
 # *.pkl
 data/
+*/config_iEEGrecon.m
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
