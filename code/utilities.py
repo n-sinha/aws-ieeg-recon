@@ -1,7 +1,10 @@
+#%%
 import os
+from pathlib import Path
 import pandas as pd
 from bids2table import bids2table
 
+#%%
 class getfiles:
     def __init__(self, BIDS_path):
         self.BIDS_path = BIDS_path
@@ -13,75 +16,67 @@ class getfiles:
         """
         bidsdf = self.BIDS_df.filter_multi(
             suffix="T1w",
-            ses={"items": ["research3T", "clinical01"]}
+            ses={"items": ["implant01", "preimplant01"]}
         )
         bidsdf = bidsdf.flat
 
         # drop the columns that are all missing
         bidsdf = bidsdf.dropna(axis=1, how='all')
 
-        # if a subject has both clinical and reasearch T1w, keep the research T1w
-        duplicates = bidsdf[bidsdf.duplicated(subset='sub', keep=False)]
-        duplicates_resolved = duplicates[duplicates['ses'] != 'clinical01']
+        t1w = bidsdf.filter(items=['sub', 'ses', 'file_path'])
+        t1w.set_index('sub', inplace=True)
 
-        cleaned = pd.concat([duplicates_resolved, bidsdf[~bidsdf.duplicated(subset='sub', keep=False)]])
-        cleaned = cleaned.sort_values(by='sub').reset_index(drop=True)
-
-        fs_reconall = cleaned.drop(columns=['extra_entities', 'json', 'space', 'mod_time'])
-        return fs_reconall
+        return t1w
     
-    def locdwi(self):
+    def locCT(self):
         """
-        Get the location of dwi images for all subjects in the BIDS dataset
+        Get the location of CT images for all subjects in the BIDS dataset
         """
         bidsdf = self.BIDS_df.filter_multi(
-            suffix="dwi",
-            ses={"items": ["research3T", "clinical01"]}
+            suffix={"items": ["CT", "ct"]},
+            ses={"items": ["implant01", "preimplant01"]}
         )
         bidsdf = bidsdf.flat
-        
+
         # drop the columns that are all missing
         bidsdf = bidsdf.dropna(axis=1, how='all')
-        bidsdf = bidsdf[bidsdf['run'] != 1] # assuming the first run was not complete and run 2 is the complete one
 
-        dwi = bidsdf.pivot_table(index='sub', columns='ext', values='file_path', aggfunc='first')
+        ct = bidsdf.filter(items=['sub', 'ses', 'file_path'])
+        ct.set_index('sub', inplace=True)
 
-        # rename coloums names
-        dwi.columns = ['bval', 'bvec', 'dwi']
-
-        return dwi
+        return ct
     
-    def loctopup(self):
+    def electrodes(self):
         """
-        Get the location of topup images for all subjects in the BIDS dataset
+        Get the location of electrodes for all subjects in the BIDS dataset
         """
         bidsdf = self.BIDS_df.filter_multi(
-            suffix="epi",
-            ext = ".nii.gz",
-            ses={"items": ["research3T", "clinical01"]}
+            suffix="electrodes",
+            ses={"items": ["implant01", "preimplant01"]}
         )
         bidsdf = bidsdf.flat
-        
+
         # drop the columns that are all missing
         bidsdf = bidsdf.dropna(axis=1, how='all')
-        bidsdf = bidsdf[bidsdf['run'] != 1]  # assuming the first run was not complete and run 2 is the complete one
 
-        topup = bidsdf.pivot_table(index='sub', columns='ext', values='file_path', aggfunc='first')
+        electrodes = bidsdf.filter(items=['sub', 'ses', 'file_path'])
+        electrodes.set_index('sub', inplace=True)
+        
 
-        # rename coloums
-        topup.columns = ['topup']
+        return electrodes
 
-        return topup
-
-
-def main():
-    BIDS_path = '/Users/nishant/Dropbox/Sinha/Lab/Research/aws-ieeg-recon/data'
-    files = getfiles(BIDS_path)
-    fs_reconall = files.locT1w()
-    fs_reconall['sub'] = 'sub-' + fs_reconall['sub']
-    # export only sub and filepath columns
-    fs_reconall.to_csv('/project/davis_group_1/nishants/brain_parcellator/jobs/fs_reconall.csv',
-                        columns=['sub', 'file_path'], index=False, header=False)
-
+#%%
 if __name__ == "__main__":
-    main()
+    project_path = Path(os.getenv('PROJECT_ROOT', os.getcwd()))
+    BIDS_path = project_path / 'data'
+    files = getfiles(BIDS_path)
+    t1 = files.locT1w()
+    ct = files.locCT()
+    electrodes = files.electrodes()
+
+    file_paths = pd.concat([
+        t1['file_path'].rename('t1w'),
+        ct['file_path'].rename('ct'),
+        electrodes['file_path'].rename('electrodes')
+    ], axis=1).to_csv(project_path / 'code' / 'file_paths.csv')
+#%%
