@@ -289,66 +289,65 @@ class IEEGRecon:
         output_dir = Path(self.output) / 'ieeg_recon' / 'module2'
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        if imageviewer == 'freeview_snapshot':
-            # Generate sagittal view
-            subprocess.run([
-                "freeview",
-                "-v", self.preImplantMRI,
-                f"{file_locations['ct_to_mri']}:colormap=heat",
-                f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
-                "-viewport", "sagittal",
-                "-ss", str(output_dir / "QA_registation_sagittal.png")
-            ], check=True)
+        # Only launch viewer if not set to 'none'
+        if imageviewer.lower() != 'none':
+            if imageviewer == 'freeview':
+                # Open interactive freeview session
+                subprocess.run([
+                    "freeview",
+                    "-v", self.preImplantMRI,
+                    f"{file_locations['ct_to_mri']}:colormap=heat",
+                    f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
+                    "-viewport", "sagittal"
+                ], check=True)
+            elif imageviewer == 'freeview_snapshot':
+                # Generate sagittal view
+                subprocess.run([
+                    "freeview",
+                    "-v", self.preImplantMRI,
+                    f"{file_locations['ct_to_mri']}:colormap=heat",
+                    f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
+                    "-viewport", "sagittal",
+                    "-ss", str(output_dir / "QA_registation_sagittal.png")
+                ], check=True)
 
-            # Generate coronal view
-            subprocess.run([
-                "freeview",
-                "-v", self.preImplantMRI,
-                f"{file_locations['ct_to_mri']}:colormap=heat",
-                f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
-                "-viewport", "coronal",
-                "-ss", str(output_dir / "QA_registation_coronal.png")
-            ], check=True)
+                # Generate coronal view
+                subprocess.run([
+                    "freeview",
+                    "-v", self.preImplantMRI,
+                    f"{file_locations['ct_to_mri']}:colormap=heat",
+                    f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
+                    "-viewport", "coronal",
+                    "-ss", str(output_dir / "QA_registation_coronal.png")
+                ], check=True)
 
-            # Generate axial view
-            subprocess.run([
-                "freeview",
-                "-v", self.preImplantMRI,
-                f"{file_locations['ct_to_mri']}:colormap=heat",
-                f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
-                "-viewport", "axial",
-                "-ss", str(output_dir / "QA_registation_axial.png")
-            ], check=True)
+                # Generate axial view
+                subprocess.run([
+                    "freeview",
+                    "-v", self.preImplantMRI,
+                    f"{file_locations['ct_to_mri']}:colormap=heat",
+                    f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
+                    "-viewport", "axial",
+                    "-ss", str(output_dir / "QA_registation_axial.png")
+                ], check=True)
 
-            # Generate 3D view
-            subprocess.run([
-                "freeview",
-                "-v", f"{file_locations['ct_to_mri']}:colormap=heat",
-                f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}:isosurface=on",
-                "-viewport", "3d", "-view", "anterior",
-                "-ss", str(output_dir / "QA_registation_3D.png")
-            ], check=True)
-
-        elif imageviewer == 'freeview':
-            # Open interactive freeview session
-            subprocess.run([
-                "freeview",
-                "-v", self.preImplantMRI,
-                f"{file_locations['ct_to_mri']}:colormap=heat",
-                f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}",
-                "-viewport", "sagittal"
-            ], check=True)
-
-        elif imageviewer == 'itksnap':
-            # Open interactive ITK-SNAP session
-            subprocess.run([
-                f"{self.itksnap}/itksnap",
-                "-g", self.preImplantMRI,
-                "-o", file_locations['ct_to_mri']
-            ], check=True)
-
-        else:
-            raise ValueError("Imageviewer must be 'itksnap', 'freeview', or 'freeview_snapshot'")
+                # Generate 3D view
+                subprocess.run([
+                    "freeview",
+                    "-v", f"{file_locations['ct_to_mri']}:colormap=heat",
+                    f"{file_locations['electrodes_inMRI']}:colormap=lut:lut={file_locations['electrodes_inMRI_freesurferLUT']}:isosurface=on",
+                    "-viewport", "3d", "-view", "anterior",
+                    "-ss", str(output_dir / "QA_registation_3D.png")
+                ], check=True)
+            elif imageviewer == 'itksnap':
+                # Open interactive ITK-SNAP session
+                subprocess.run([
+                    f"{self.itksnap}/itksnap",
+                    "-g", self.preImplantMRI,
+                    "-o", file_locations['ct_to_mri']
+                ], check=True)
+            else:
+                raise ValueError(f"Unknown imageviewer option: {imageviewer}")
 
 #%% 
 if __name__ == "__main__":
@@ -365,7 +364,7 @@ if __name__ == "__main__":
     parser.add_argument('--reg-type', type=str, default='gc', choices=['gc', 'g', 'gc_noCTthereshold'],
                        help='Registration type (default: gc)')
     parser.add_argument('--qa-viewer', type=str, default='freeview',
-                       choices=['freeview', 'freeview_snapshot', 'itksnap'],
+                       choices=['freeview', 'freeview_snapshot', 'itksnap', 'none'],
                        help='Quality assurance viewer (default: freeview)')
     
     # Parse arguments
@@ -414,7 +413,6 @@ if __name__ == "__main__":
         for name, path in file_locations.items():
             print(f"{name}: {path}")
         
-        print("Generating quality assurance visualizations...")
         recon.module2_QualityAssurance(file_locations, args.qa_viewer)
     
     print("Processing complete!")
