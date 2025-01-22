@@ -19,7 +19,7 @@ This pipeline provides tools for reconstructing intracranial EEG (iEEG) electrod
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ieeg-reconstruction.git
+git clone https://github.com/n-sinha/ieeg-reconstruction.git
 cd ieeg-reconstruction
 ```
 
